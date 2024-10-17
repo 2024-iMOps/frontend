@@ -56,7 +56,7 @@
         }
         .progress-bar-fill {
             height: 100%;
-            width: 50%; /* This would be dynamic based on the upload progress */
+            width: 0%; /* This would be dynamic based on the upload progress */
             background-color: #4caf50;
             transition: width 0.4s ease;
         }
@@ -71,17 +71,30 @@
         .status-message.error {
             color: red;
         }
+        .api-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .api-container button {
+            padding: 10px 20px;
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .api-container button:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <span class="logo">PDFUploader</span>
-            <nav>
-                <a href="#">Home</a>
-                <a href="#">Upload PDF</a>
-                <a href="#">Uploaded Confirmation</a>
-            </nav>
+            
         </div>
         <div class="upload-area" id="upload-area">
             <p>Drag and drop your PDF files here</p>
@@ -92,7 +105,10 @@
         <div class="progress-bar">
             <div class="progress-bar-fill" id="progress-bar-fill"></div>
         </div>
-        <div class="status-message error" id="status-message">Error: The file could not be uploaded. Please try again.</div>
+        <div class="status-message error" id="status-message">Select a PDF to parse.</div>
+        <div class="api-container">
+            <button onclick="parsePDF()">PDF Parse</button>
+        </div>
     </div>
     <script>
         document.getElementById('fileInput').addEventListener('change', function() {
@@ -103,6 +119,11 @@
             document.getElementById('status-message').classList.add('success');
             document.getElementById('status-message').innerText = 'Upload Successful!';
         });
+
+        function parsePDF() {
+            alert('Parsing PDF...');
+            // Logic to parse PDF using Upstage API
+        }
     </script>
 </body>
 </html>
