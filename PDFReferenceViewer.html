@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Reference Viewer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf_viewer.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans', sans-serif;
+      background: linear-gradient(90deg, #e3ffe7 0%, #d9e7ff 100%);
+      color: #333;
+    }
+    #container {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px;
+      gap: 40px;
+    }
+    #pdf-container {
+      position: relative;
+      width: 60%;
+      max-width: 600px;
+      height: auto;
+      padding: 10px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      background: #fafafa;
+      border-radius: 8px;
+      flex-direction: column;
+    }
+    .bounding-box {
+      position: absolute;
+      border: 2px solid red;
+      pointer-events: none;
+      box-sizing: border-box;
+    }
+    #metadata {
+      width: 30%;
+      max-width: 400px;
+      padding: 30px;
+      background: #fafafa;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      text-align: left;
+      border-radius: 8px;
+    }
+    #metadata h6 {
+      margin-top: 10px;
+      font-size: 1.5em;
+      color: #09C9A6;
+      text-align: center;
+    }
+    #metadata p {
+      text-align: left;
+    }
+    canvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      position: relative;
+      z-index: 0;
+    }
+    p {
+      font-size: 1em;
+      color: #333;
+      margin: 10px 0;
+    }
+    .navigation-container {
+      width: 60%;
+      max-width: 600px;
+      margin: 20px auto 0;
+      text-align: center;
+    }
+    .arrow-button {
+      font-size: 1.2em;
+      color: #ffffff;
+      cursor: pointer;
+      padding: 10px 20px;
+      border: none;
+      background-color: #aaaaaa;
+      border-radius: 4px;
+      transition: transform 0.2s, background-color 0.2s;
+      margin: 5px;
+    }
+    .arrow-button:hover {
+      transform: scale(1.1);
+      background-color: #69DB86;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="pdf-container">
+      <canvas id="pdf-render"></canvas>
+    </div>
+    <div id="metadata">
+      <h6>Document Metadata</h6>
+      <p id="file-name">File Name: </p>
+      <p id="total-pages">Total Pages: </p>
+      <p id="current-page">Current Page: </p>
+      <p id="chunk-text">Chunk Text: </p>
+    </div>
+  </div>
+  <div class="navigation-container">
+    <button id="prev-button" class="arrow-button">&#8592; Previous</button>
+    <button id="next-button" class="arrow-button">Next &#8594;</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  <script>
+    let retrievedDocs = [
+      { url: './1_KDB생명-알찬연금보험.pdf', metadata: { name: '1_KDB생명-알찬연금보험.pdf', pages: [1, 2] } },
+      { url: './1_교보생명-First100세시대변액연금보험.pdf', metadata: { name: '1_교보생명-First100세시대변액연금보험.pdf', pages: [1] } }
+    ];
+
+    const canvas = document.getElementById('pdf-render');
+    const ctx = canvas.getContext('2d');
+    const fileNameElem = document.getElementById('file-name');
+    const totalPagesElem = document.getElementById('total-pages');
+    const currentPageElem = document.getElementById('current-page');
+    const chunkTextElem = document.getElementById('chunk-text');
+    let docIndex = 0;
+    let pageIndex = 0;
+    let pdfDoc = null;
+
+    // Dummy bounding box data for demonstration purposes
+    const bboxes = [
+      { page: 1, top: 100, left: 150, width: 200, height: 50 },
+      { page: 2, top: 50, left: 100, width: 150, height: 100 }
+    ];
+
+    function loadDocument(docIndex) {
+      const doc = retrievedDocs[docIndex];
+      pdfjsLib.getDocument(doc.url).promise.then((pdfDoc_) => {
+        pdfDoc = pdfDoc_;
+        const pageNumbers = doc.metadata.pages;
+        totalPagesElem.textContent = `Total Pages: ${pageNumbers.length}`;
+        fileNameElem.textContent = `File Name: ${doc.metadata.name}`;
+        renderPage(pageNumbers[pageIndex]);
+      });
+    }
+
+    function renderPage(pageNumber) {
+      pdfDoc.getPage(pageNumber).then((page) => {
+        const viewport = page.getViewport({ scale: 1.5 });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = {
+          canvasContext: ctx,
+          viewport: viewport,
+        };
+
+        page.render(renderContext).promise.then(() => {
+          drawBoundingBoxes(pageNumber, viewport);
+        });
+
+        currentPageElem.textContent = `Current Page: ${pageNumber}`;
+        chunkTextElem.textContent = `Chunk Text: Placeholder for text from page ${pageNumber}`;
+      });
+    }
+
+    function drawBoundingBoxes(pageNumber, viewport) {
+      document.querySelectorAll('.bounding-box').forEach((box) => box.remove());
+      const currentDocBboxes = bboxes.filter((box) => box.page === pageNumber);
+      currentDocBboxes.forEach((box) => {
+        const div = document.createElement('div');
+        div.className = 'bounding-box';
+        div.style.top = `${box.top * viewport.scale}px`;
+        div.style.left = `${box.left * viewport.scale}px`;
+        div.style.width = `${box.width * viewport.scale}px`;
+        div.style.height = `${box.height * viewport.scale}px`;
+        div.style.zIndex = 2;
+        document.getElementById('pdf-container').appendChild(div);
+      });
+    }
+
+    document.getElementById('next-button').addEventListener('click', () => {
+      const doc = retrievedDocs[docIndex];
+      const pageNumbers = doc.metadata.pages;
+      if (pageIndex < pageNumbers.length - 1) {
+        pageIndex++;
+      } else if (docIndex < retrievedDocs.length - 1) {
+        docIndex++;
+        pageIndex = 0;
+      }
+      loadDocument(docIndex);
+    });
+
+    document.getElementById('prev-button').addEventListener('click', () => {
+      if (pageIndex > 0) {
+        pageIndex--;
+      } else if (docIndex > 0) {
+        docIndex--;
+        const doc = retrievedDocs[docIndex];
+        pageIndex = doc.metadata.pages.length - 1;
+      }
+      loadDocument(docIndex);
+    });
+
+    loadDocument(docIndex);
+  </script>
+</body>
+</html>
