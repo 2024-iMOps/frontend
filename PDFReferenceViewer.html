@@ -23,7 +23,7 @@
     #pdf-container {
       position: relative;
       width: 60%;
-      max-width: 600px;
+      max-width: 800px;
       height: auto;
       padding: 10px;
       box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
@@ -34,6 +34,20 @@
       background: #fafafa;
       border-radius: 8px;
       flex-direction: column;
+    }
+    #pdf-container::before {
+      content: 'bbox on image';
+      position: absolute;
+      top: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.2em;
+      color: #09C9A6;
+      background: #ffffff;
+      padding: 4px 12px;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      z-index: 10;
     }
     .bounding-box {
       position: absolute;
@@ -49,6 +63,7 @@
       box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
       text-align: left;
       border-radius: 8px;
+      position: relative;
     }
     #metadata h6 {
       margin-top: 10px;
@@ -73,7 +88,7 @@
     }
     .navigation-container {
       width: 60%;
-      max-width: 600px;
+      max-width: 800px;
       margin: 20px auto 0;
       text-align: center;
     }
@@ -88,9 +103,36 @@
       transition: transform 0.2s, background-color 0.2s;
       margin: 5px;
     }
-    .arrow-button:hover {
-      transform: scale(1.1);
-      background-color: #69DB86;
+    #prev-button:hover {
+      background-image: linear-gradient(to right, #0ba360, #3cba92, #30dd8a, #2bb673);
+      box-shadow: 0 4px 15px 0 rgba(23, 168, 108, 0.75);
+      animation: slide-in-right 2s infinite;
+    }
+    #next-button:hover {
+      background-image: linear-gradient(to right, #0ba360, #3cba92, #30dd8a, #2bb673);
+      box-shadow: 0 4px 15px 0 rgba(23, 168, 108, 0.75);
+      animation: slide-in-left 2s infinite;
+    }
+    @keyframes gradient-move {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes slide-in-left {
+      0% {
+          transform: translateX(0%);
+      }
+      100% {
+          transform: translateX(7%);
+      }
+    }
+    @keyframes slide-in-right {
+      0% {
+          transform: translateX(0%);
+      }
+      100% {
+          transform: translateX(-7%);
+      }
     }
   </style>
 </head>
@@ -105,6 +147,7 @@
       <p id="total-pages">Total Pages: </p>
       <p id="current-page">Current Page: </p>
       <p id="chunk-text">Chunk Text: </p>
+      <p id="bbox-info">Bounding Box: </p>
     </div>
   </div>
   <div class="navigation-container">
@@ -115,8 +158,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
   <script>
     let retrievedDocs = [
-      { url: './1_KDB생명-알찬연금보험.pdf', metadata: { name: '1_KDB생명-알찬연금보험.pdf', pages: [1, 2] } },
-      { url: './1_교보생명-First100세시대변액연금보험.pdf', metadata: { name: '1_교보생명-First100세시대변액연금보험.pdf', pages: [1] } }
+      { url: './1_KDB생명-알찬연금보험.pdf', metadata: { name: '1_KDB생명-알찬연금보험.pdf', pages: [1] } }
     ];
 
     const canvas = document.getElementById('pdf-render');
@@ -125,15 +167,32 @@
     const totalPagesElem = document.getElementById('total-pages');
     const currentPageElem = document.getElementById('current-page');
     const chunkTextElem = document.getElementById('chunk-text');
+    const bboxInfoElem = document.getElementById('bbox-info');
     let docIndex = 0;
     let pageIndex = 0;
+    let bboxIndex = 0;
     let pdfDoc = null;
+    let bboxes = [];
 
-    // Dummy bounding box data for demonstration purposes
-    const bboxes = [
-      { page: 1, top: 100, left: 150, width: 200, height: 50 },
-      { page: 2, top: 50, left: 100, width: 150, height: 100 }
-    ];
+    // JSON 파일에서 bounding box 데이터를 로드합니다.
+    function loadBoundingBoxes() {
+      fetch('./coordinate/0000_0000.json')
+        .then(response => response.json())
+        .then(data => {
+          bboxes = data.elements.map(element => {
+            const bbox = element.bounding_box;
+            return {
+              page: element.page,
+              left: bbox[0].x,
+              bottom: bbox[0].y,
+              right: bbox[1].x,
+              top: bbox[3].y
+            };
+          });
+          loadDocument(docIndex);
+        })
+        .catch(error => console.error('Error loading bounding boxes:', error));
+    }
 
     function loadDocument(docIndex) {
       const doc = retrievedDocs[docIndex];
@@ -158,7 +217,7 @@
         };
 
         page.render(renderContext).promise.then(() => {
-          drawBoundingBoxes(pageNumber, viewport);
+          drawBoundingBox(pageNumber, viewport);
         });
 
         currentPageElem.textContent = `Current Page: ${pageNumber}`;
@@ -166,45 +225,76 @@
       });
     }
 
-    function drawBoundingBoxes(pageNumber, viewport) {
+    function drawBoundingBox(pageNumber, viewport) {
       document.querySelectorAll('.bounding-box').forEach((box) => box.remove());
       const currentDocBboxes = bboxes.filter((box) => box.page === pageNumber);
-      currentDocBboxes.forEach((box) => {
+      if (currentDocBboxes.length > 0) {
+        const box = currentDocBboxes[bboxIndex % currentDocBboxes.length];
+        const x = box.left * (canvas.width / viewport.width);
+        const y = (viewport.height - box.top) * (canvas.height / viewport.height);
+        const width = (box.right - box.left) * (canvas.width / viewport.width);
+        const height = (box.top - box.bottom) * (canvas.height / viewport.height);
+
         const div = document.createElement('div');
         div.className = 'bounding-box';
-        div.style.top = `${box.top * viewport.scale}px`;
-        div.style.left = `${box.left * viewport.scale}px`;
-        div.style.width = `${box.width * viewport.scale}px`;
-        div.style.height = `${box.height * viewport.scale}px`;
+        div.style.left = `${x}px`;
+        div.style.top = `${y - height}px`;
+        div.style.width = `${width}px`;
+        div.style.height = `${height}px`;
         div.style.zIndex = 2;
         document.getElementById('pdf-container').appendChild(div);
-      });
+
+        bboxInfoElem.textContent = `Bounding Box: ${bboxIndex + 1} / ${currentDocBboxes.length}`;
+      } else {
+        bboxInfoElem.textContent = 'Bounding Box: None';
+      }
     }
 
     document.getElementById('next-button').addEventListener('click', () => {
       const doc = retrievedDocs[docIndex];
       const pageNumbers = doc.metadata.pages;
-      if (pageIndex < pageNumbers.length - 1) {
+      const currentDocBboxes = bboxes.filter((box) => box.page === pageNumbers[pageIndex]);
+
+      if (bboxIndex < currentDocBboxes.length - 1) {
+        bboxIndex++;
+      } else if (pageIndex < pageNumbers.length - 1) {
         pageIndex++;
+        bboxIndex = 0;
       } else if (docIndex < retrievedDocs.length - 1) {
         docIndex++;
         pageIndex = 0;
+        bboxIndex = 0;
+      } else {
+        alert('더 이상 놓기는 Bounding Box가 없습니다.');
+        return;
       }
-      loadDocument(docIndex);
+      renderPage(pageNumbers[pageIndex]);
     });
 
     document.getElementById('prev-button').addEventListener('click', () => {
-      if (pageIndex > 0) {
+      const doc = retrievedDocs[docIndex];
+      const pageNumbers = doc.metadata.pages;
+      const currentDocBboxes = bboxes.filter((box) => box.page === pageNumbers[pageIndex]);
+
+      if (bboxIndex > 0) {
+        bboxIndex--;
+      } else if (pageIndex > 0) {
         pageIndex--;
+        const prevPageBboxes = bboxes.filter((box) => box.page === pageNumbers[pageIndex]);
+        bboxIndex = Math.max(prevPageBboxes.length - 1, 0);
       } else if (docIndex > 0) {
         docIndex--;
-        const doc = retrievedDocs[docIndex];
-        pageIndex = doc.metadata.pages.length - 1;
+        pageIndex = retrievedDocs[docIndex].metadata.pages.length - 1;
+        const prevPageBboxes = bboxes.filter((box) => box.page === pageNumbers[pageIndex]);
+        bboxIndex = Math.max(prevPageBboxes.length - 1, 0);
+      } else {
+        alert('더 이상 놓기는 Bounding Box가 없습니다.');
+        return;
       }
-      loadDocument(docIndex);
+      renderPage(pageNumbers[pageIndex]);
     });
 
-    loadDocument(docIndex);
+    loadBoundingBoxes();
   </script>
 </body>
 </html>
