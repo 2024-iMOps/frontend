@@ -1,78 +1,124 @@
-.imops {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    padding: 1rem;
-    background-color: #f0f9ff;
-  }
+.rag-platform {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #f0f9ff;
+  width: 100%;
+}
   
-  .section {
-    background-color: white;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  }
+.section {
+  background-color: white;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  width: 100%;
+}
   
-  .horizontal-sections {
+.horizontal-sections {
     display: flex;
     flex-direction: row;
     gap: 1rem;
-  }
+    width: 100%;
+}
   
-  .horizontal-section {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-  }
+/* .api-keys {
+    
+} */
+
+.text-chunking {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.model-config {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
   
-  .embedding-llm-section {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
+.embedding-llm {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
   
-  .embedding-llm-section select {
-    margin-bottom: 0;
-  }
+.embedding-llm select {
+  margin-bottom: 0;
+}
   
-  .embedding-llm-section button {
+.embedding-llm button {
     margin-top: auto;
-  }
+}
   
-  .prompt-result-container {
+.prompt-result-container {
     display: flex;
     flex-direction: row;
     gap: 1rem;
-  }
+    width: 100%;
+}
   
-  .prompt-section,
-  .result-section {
+.prompt-section,
+.result-section {
     flex: 1;
     display: flex;
     flex-direction: column;
-  }
+    width: 100%;
+}
   
-  .slider-container {
+.slider-container {
     margin-bottom: 1rem;
-  }
+}
   
-  .slider-label {
+.slider-label {
     display: block;
     margin-bottom: 0.5rem;
-  }
+}
   
-  select {
+select {
     margin-bottom: 1.5rem;
-  }
+}
   
-  textarea {
+textarea {
     min-height: 200px;
-  }
+}
   
-  @media (max-width: 768px) {
-    .horizontal-sections,
-    .prompt-result-container {
-      flex-direction: column;
+@media (max-width: 1024px) {
+    .horizontal-sections {
+        flex-direction: column;
     }
-  }
+}
+
+@media (max-width: 768px) {
+    .prompt-result-container {
+        flex-direction: column;
+    }
+
+    .imops {
+        padding: 0.5rem;
+    }
+
+    .section {
+        padding: 0.5rem;
+    }
+}
+
+.slider-with-labels {
+    display: flex;
+    align-items: center;
+}
+
+.slider-min-label, .slider-max-label {
+    flex: 0 0 auto;
+    margin: 0 10px;
+    font-size: 0.75rem; /* 글자 크기를 줄입니다 */
+    /* color: #666; 옵션: 글자 색상을 조금 연하게 만듭니다 */
+}
+
+.MuiSlider-root {
+    flex: 1;
+}
